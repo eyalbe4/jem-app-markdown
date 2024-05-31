@@ -8,9 +8,14 @@ import (
 )
 
 func main() {
-	pathToApps := filepath.Join("/", "Users", "eyalb", "dev", "jem-apps", "apps")
+	if len(os.Args) < 2 {
+		fmt.Fprintln(os.Stderr, "Usage: You should provide the path the 'apps' directory as an argument")
+		os.Exit(1)
+	}
+
+	pathToApps := os.Args[1]
 	generator := markdown.AppsMarkdownGenerator{}
-	content, err := generator.Generate(pathToApps)
+	content, err := generator.Generate(filepath.Clean(pathToApps))
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
