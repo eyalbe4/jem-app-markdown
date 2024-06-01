@@ -132,7 +132,13 @@ func (gen *AppsMarkdownGenerator) generateMarkdown(apps []App) (string, error) {
 		// Use HTML tags for smaller font size and color the description in light blue
 		sb.WriteString(fmt.Sprintf("<small style=\"color:lightblue;\">%s</small>\n", app.Description))
 		sb.WriteString("<details>\n")
-		sb.WriteString("<summary>📦 Versions</summary>\n")
+		// Count the total number of versions
+		totalVersions := len(app.Versions)
+		versionsString := "versions"
+		if totalVersions == 1 {
+			versionsString = "version"
+		}
+		sb.WriteString(fmt.Sprintf("<summary>📦 %d %s</summary>\n", totalVersions, versionsString))
 		sb.WriteString("<ul>\n")
 		for _, version := range app.Versions {
 			sb.WriteString(fmt.Sprintf("<li>🏷️ %s\n", version.VersionName))
