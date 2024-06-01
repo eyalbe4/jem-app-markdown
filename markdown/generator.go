@@ -11,10 +11,15 @@ import (
 
 type AppsMarkdownGenerator struct{}
 
+type Version struct {
+	VersionName string
+	Platforms   []string
+}
+
 type App struct {
 	Name        string
 	Description string
-	Versions    []string
+	Versions    []Version
 }
 
 func (gen *AppsMarkdownGenerator) Generate(pathToAppsDir string) (markdown string, err error) {
@@ -41,22 +46,28 @@ func (gen *AppsMarkdownGenerator) scanApps(dir string) ([]App, error) {
 			versionDir := filepath.Base(appDir)
 			nameDir := filepath.Base(filepath.Dir(appDir))
 
+			description, platforms, err := gen.getDescriptionAndPlatformsFromAppYaml(path)
+			if err != nil {
+				return err
+			}
+
+			version := Version{
+				VersionName: versionDir,
+				Platforms:   platforms,
+			}
+
 			// Check if the app with the same name already exists
 			if app, exists := appsMap[nameDir]; exists {
 				// Add the version to the existing app
-				app.Versions = append(app.Versions, versionDir)
+				app.Versions = append(app.Versions, version)
 				// Update the value in the map
 				appsMap[nameDir] = app
 			} else {
 				// Create a new app and add it to the map
-				description, err := gen.getDescriptionFromAppYaml(path)
-				if err != nil {
-					return err
-				}
 				app := App{
 					Name:        nameDir,
 					Description: description,
-					Versions:    []string{versionDir},
+					Versions:    []Version{version},
 				}
 				appsMap[nameDir] = app
 			}
@@ -81,26 +92,39 @@ func (gen *AppsMarkdownGenerator) scanApps(dir string) ([]App, error) {
 	return apps, nil
 }
 
-func (gen *AppsMarkdownGenerator) getDescriptionFromAppYaml(filePath string) (string, error) {
+func (gen *AppsMarkdownGenerator) getDescriptionAndPlatformsFromAppYaml(filePath string) (string, []string, error) {
 	content, err := os.ReadFile(filePath)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
 	// Unmarshal the YAML content into the struct
 	type yamlContent struct {
-		Description string `yaml:"description"`
+		Description string                 `yaml:"description"`
+		Platforms   map[string]interface{} `yaml:"platforms"`
 	}
 	var y yamlContent
 	if err = yaml.Unmarshal(content, &y); err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return y.Description, nil
+	var platforms []string
+	for platform := range y.Platforms {
+		platforms = append(platforms, platform)
+	}
+
+	return y.Description, platforms, nil
 }
 
 func (gen *AppsMarkdownGenerator) generateMarkdown(apps []App) (string, error) {
 	var sb strings.Builder
+
+	// Define a list of available emojis, to be used for the platforms
+	emojis := []string{"🍎", "🍏", "🐧", "🪟", "🚀", "📱", "💻", "🖥️", "📀", "🔧"}
+	emojiIndex := 0
+
+	// Map to keep track of platform to emoji assignment
+	platformToEmoji := make(map[string]string)
 
 	// Write markdown content
 	for _, app := range apps {
@@ -111,7 +135,24 @@ func (gen *AppsMarkdownGenerator) generateMarkdown(apps []App) (string, error) {
 		sb.WriteString("<summary>📦 Versions</summary>\n")
 		sb.WriteString("<ul>\n")
 		for _, version := range app.Versions {
-			sb.WriteString(fmt.Sprintf("<li>%s</li>\n", version))
+			sb.WriteString(fmt.Sprintf("<li>🏷️ %s\n", version.VersionName))
+			sb.WriteString("<ul>\n")
+			for _, platform := range version.Platforms {
+				// Assign an emoji to the platform if not already assigned
+				emoji, exists := platformToEmoji[platform]
+				if !exists {
+					if emojiIndex >= len(emojis) {
+						emoji = "🔧" // Default emoji if we run out of unique emojis
+					} else {
+						emoji = emojis[emojiIndex]
+						emojiIndex++
+					}
+					platformToEmoji[platform] = emoji
+				}
+				sb.WriteString(fmt.Sprintf("<li>%s %s</li>\n", emoji, platform))
+			}
+			sb.WriteString("</ul>\n")
+			sb.WriteString("</li>\n")
 		}
 		sb.WriteString("</ul>\n")
 		sb.WriteString("</details>\n")
