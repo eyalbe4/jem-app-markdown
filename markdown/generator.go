@@ -104,11 +104,11 @@ func (gen *AppsMarkdownGenerator) generateMarkdown(apps []App) (string, error) {
 
 	// Write markdown content
 	for _, app := range apps {
-		sb.WriteString(fmt.Sprintf("## %s\n", app.Name))
-		// Use HTML tags for smaller font size
-		sb.WriteString(fmt.Sprintf("<small>%s</small>\n", app.Description))
+		sb.WriteString(fmt.Sprintf("## 🖥️ %s\n", app.Name))
+		// Use HTML tags for smaller font size and color the description in light blue
+		sb.WriteString(fmt.Sprintf("<small style=\"color:lightblue;\">%s</small>\n", app.Description))
 		sb.WriteString("<details>\n")
-		sb.WriteString("<summary>Versions</summary>\n")
+		sb.WriteString("<summary>📦 Versions</summary>\n")
 		sb.WriteString("<ul>\n")
 		for _, version := range app.Versions {
 			sb.WriteString(fmt.Sprintf("<li>%s</li>\n", version))
